@@ -5,7 +5,11 @@
   "main": "index.js",
   "scripts": {
     "testfiles": "node index.js --testfiles",
+    "testfiles-arg": "node index.js --folder=testfiles --filetype=*.json --depth=2",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "minimist": "^1.2.0"
   },
   "repository": {
     "type": "git",
