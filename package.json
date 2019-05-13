@@ -1,0 +1,24 @@
+{
+  "name": "property-4-json",
+  "version": "0.1.0",
+  "description": "Add new properties like successive ids to JSON like objects",
+  "main": "index.js",
+  "scripts": {
+    "testfiles": "node index.js --testfiles",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jannicz/property-4-json.git"
+  },
+  "keywords": [
+    "json",
+    "parser"
+  ],
+  "author": "Jan Suwart",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jannicz/property-4-json/issues"
+  },
+  "homepage": "https://github.com/jannicz/property-4-json#readme"
+}

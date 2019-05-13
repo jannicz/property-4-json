@@ -1,0 +1,19 @@
+[
+  {
+    "foo": "bar",
+    "bar": {
+      "baz": "ha"
+    }
+  },
+  {
+    "foo": "bar",
+    "bar": true
+  },
+  {
+    "ma": {},
+    "bar" : {
+      "tra" : ["fa"]
+    }
+  },
+  {"maka":{"afa":[]}}
+]
