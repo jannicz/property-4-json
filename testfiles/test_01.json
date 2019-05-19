@@ -1,19 +1,18 @@
 [
   {
-    "foo": "bar",
-    "bar": {
-      "baz": "ha"
-    }
+    "foo": "bar"
   },
   {
-    "foo": "bar",
-    "bar": true
-  },
-  {
-    "ma": { },
     "bar" : {
-      "tra" : ["fa"]
+      "baz" : false
     }
   },
-  {"maka":{"afa":[]}}
+  {
+    "foo": { },
+    "bar": true,
+    "baz": {
+      "tra" : ["far"]
+    }
+  },
+  {"mar":{"car":[]}}
 ]

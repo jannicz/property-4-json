@@ -4,7 +4,10 @@ const minimist = require('minimist');
 
 /**
  * Inserts new properties (i.e. IDs) to JSON like structures
- * Run using "node ./index --folder=foldername/subfolder --filetype=*.json --depth=1"
+ * Run using "node ./index --folder=foldername/subfolder --filetype=.json --depth=1"
+ * 
+ * @author Jan Suwart
+ * @licence MIT
  */
 class Poperty4Json {
 
@@ -13,58 +16,119 @@ class Poperty4Json {
       throw new Error('Please provide a foldername relative to your project root directory');
     }
 
+    if (args.depth > 1) {
+      console.warn('Depth of >1 is experimental and not yet recommended - use with caution');
+    }
+
     this.folder = args.folder;
-    this.filetype = args.filetype | '*.json';
-    this.depth = args.depth | 1;
+    this.filetype = args.filetype || '.json';
+    this.depth = args.depth || 1;
 
     // @see https://regexr.com/4dt6m
     // BASE: \{[^}{]*\}
     // PREFIX: \{(?:[^}{]+|
     // POSTFIX: )*\}
-    this.regex = /\{(?:[^}{]+|\{(?:[^}{]+|\{[^}{]*\})*\})*\}/g;
+    this.regex = /\{(?:[^}{]+|\{(?:[^}{]+|\{(?:[^}{]+|\{(?:[^}{]+|\{(?:[^}{]+|\{[^}{]*\})*\})*\})*\})*\})*\}/g;
   }
 
-  parse() {
+  /**
+   * Define path and filename, read the folder and filter for files, start splitting algorithm
+   */
+  parseFiles() {
     console.log('Running Poperty4Json... parsed options', this);
 
-    // Define path and filename, read the file, PWD = working directory when the process was started
+    // PWD = working directory when the process was started
     const workingPath = path.resolve(process.env.PWD, this.folder);
-    const indexFilePath = [path.resolve(workingPath, 'test_01.json')];
+    this.readDirectory(this.folder, this.filetype).then(files => {
+      console.log('promised files =>', files);
 
-    // TODO if is folder, use readdir and add all files to [], else just use the one file
-
-    indexFilePath.forEach((fileName) => {
-      let file = fs.readFileSync(fileName, 'utf8');
-      console.log('Process folder', this.folder, 'and edit file', file);
-
-      const matches = this.getAllMatchesByRe(file, this.regex);
-
-      matches.forEach((match, i) => {
-        const matchedObject = match[0];
-        console.log('match', i, matchedObject);
-
-        // The matched object is an empty leaf
-        if (/^{\n*\s*}$/.test(matchedObject)) {
-          console.log('THERE IS AN EMPTY OBJECT');
-          file = file.replace(matchedObject, matchedObject.replace(/^{(\s*)}/m, `{$1"id": ${i}$1}`));
-        } else {
-          // @see https://regexr.com/4dt7e
-          file = file.replace(matchedObject, matchedObject.replace(/^(\s*){(\n*\s*)/m, `{$2"id": ${i},$2`));
-
-          switch (this.depth) {
-            case 1:
-              break;
-            case 2:
-              break;
-            default:
-              break;
-          }
-        }
+      const indexFilePath = files.map(file => {
+        return path.resolve(workingPath, file);
       });
 
-      console.log('transformed file =>', file);
+      // const indexFilePath = [path.resolve(workingPath, 'test_01.json')];
+      console.log('indexFilePath =>', indexFilePath);
 
+      indexFilePath.forEach((fileName) => {
+        let file = fs.readFileSync(fileName, 'utf8');
+        console.log('\nProcess fileName', fileName, 'and edit file length', file.length, '\n');
+
+        const output = this.splitStingAndIterate(file, this.depth);
+
+        console.log('\n***** Transformed File ***** \n', output, '\n\n\n');
+      });
     });
+  }
+
+  splitStingAndIterate(file, depth) {
+    const matches = this.getAllMatchesByRe(file, this.regex);
+
+    matches.forEach((match, i) => {
+      const matchedObject = match[0];
+      console.log('=> match', i, '- depth', depth, '-', matchedObject);
+
+      // The matched object is an empty leaf
+      if (/^{\n*\s*}$/.test(matchedObject)) {
+        console.log('THERE IS AN EMPTY OBJECT');
+        file = file.replace(matchedObject, matchedObject.replace(/^{(\s*)}/m, `{$1"id": ${i}$1}`));
+      } else {
+
+        switch (depth) {
+          case 1:
+            // @see https://regexr.com/4dt7e
+            // file = file.replace(matchedObject, matchedObject.replace(/^(\s*){(\n*\s*)/m, `{$2"id": ${i},$2`));
+            file = file.replace(matchedObject, matchedObject.replace(/^(\s*){(\s*)/m, `{$2"id": ${i},$2`));
+            console.log('=> REPLACED string', file);
+            break;
+          case 2:
+            // file = file.replace(matchedObject, matchedObject.replace(/^(?:{)[^{]*(\s*)({)(\s*)((?:.|\s)*?)(?:})$/, `{"id": ${i},`));
+
+            // Remove the outer object brackets
+            const removedOuterBrackets = matchedObject.replace(/^{([\S\s]*)}$/, '$1');
+            console.log('removedOuterBrackets =>', removedOuterBrackets);
+            // console.log('innerMatches =>', innerMatches[0]);
+
+            // const innerMatches = this.getAllMatchesByRe(matchedObject, /{/g);
+            // console.log('=> innerMatches', innerMatches);
+
+
+            // RECURSION
+            file = this.splitStingAndIterate(removedOuterBrackets, 1);
+            break;
+          default:
+            break;
+        }
+      }
+    });
+
+    return file;
+  }
+
+  /**
+   * Reads the directory and returns array of files that match filetype (i.e. .json)
+   */
+  readDirectory(dirname, filetype) {
+    console.log('Reading folder', dirname, 'and filtering for type', filetype, '...');
+
+    return new Promise((resolve, reject) => {
+      let fileList = [];
+
+      fs.readdir(dirname, (error, files) => {
+        if (error) {
+          reject('Unable to read directory', dirname, error);
+        }
+
+        files.forEach((file) => {
+          if (file.includes(filetype)) {
+            console.log('pushing', file);
+            fileList.push(file);
+          }
+        });
+
+        resolve(fileList);
+      });
+    });
+
   }
 
   writeFile() {
@@ -78,7 +142,7 @@ class Poperty4Json {
     // });
   }
 
-  getAllMatchesByRe(str, re) {
+  getAllMatchesByRe(string, re) {
     let matches = [];
     let match;
 
@@ -90,7 +154,7 @@ class Poperty4Json {
       );
     }
 
-    while (match = re.exec(str)) {
+    while (match = re.exec(string)) {
       matches.push(match);
 
       if (re.lastIndex === match.index) {
@@ -107,4 +171,4 @@ console.log('MIMIMALIST argv =>', argv);
 
 // Create the instance and set the options
 const prop4json = new Poperty4Json(argv);
-prop4json.parse();
+prop4json.parseFiles();

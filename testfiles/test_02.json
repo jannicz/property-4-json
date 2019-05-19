@@ -1,0 +1,11 @@
+{
+  "foo": {
+    "bar" : {
+      "baz" : false
+    }
+  },
+  "bar": true,
+  "baz": {
+    "tra" : ["far"]
+  }
+}
