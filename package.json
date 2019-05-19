@@ -1,6 +1,6 @@
 {
   "name": "property-4-json",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Add new properties like successive ids to JSON like objects",
   "main": "index.js",
   "scripts": {

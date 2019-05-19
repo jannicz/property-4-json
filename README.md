@@ -18,9 +18,17 @@ Add the following line to your npm scripts:
 }
 ```
 
-# Output
+# Options
 
-The following JSON example file
+Each option shall be passed using the syntax `--option=value`
+
+* `--folder`: directory (path) of the source files relative to your package.json, i.e. `--folder=src/my-json-files`
+* `--filetype`: the filetype with the syntax `.js`, `.ts`, `.json` etc.
+* `--quotation`: quotation type in which the id parameter should be wrapped, possible values are `single`, `double`, `none`
+
+# Examples
+
+Running the algorithm on the following JSON file containing an array of objects
 
 ```
 [
@@ -36,22 +44,42 @@ The following JSON example file
 ]
 ```
 
-will be enriched with incremental IDs and become
+will enrich each object with an incremental ID
 
 ```
 [
   {
-    "id": 0,
+    "id": 0, // <- here
     "foo": { },
     "bar": []
   },
   {
-    "id": 1,
+    "id": 1, // <- and here
     "bar" : {
       "baz" : false
     }
   }
 ]
+```
+
+You are not limited to JSON files, the algorithm can be applied to any structure wrapped in curly
+brackets. Using the algorithm with a `--quotation=none` parameter on the following typescript file
+
+```
+interface Car {
+    engine: string,
+    cylinders: number,
+}
+```
+
+will result in
+
+```
+interface Car {
+    id: 0,
+    engine: string,
+    cylinders: number,
+}
 ```
 
 # Limitations
@@ -61,5 +89,7 @@ will be enriched with incremental IDs and become
 
 # ToDo
 
-* recognize existing IDs (or custom property) and overwrite it with new value
-* start at custom id, i.e. 100
+* recognize existing IDs and overwrite it with new value
+* name your id parameter, i.e. 'uuid' (custom property)
+* start at higher property numbers, i.e. 100, 101 etc.
+* deeper nesting levels at which the parameter should be applied
