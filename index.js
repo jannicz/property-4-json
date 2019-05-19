@@ -3,9 +3,11 @@ const path = require('path');
 const minimist = require('minimist');
 
 /**
- * Inserts new properties (i.e. IDs) to JSON like structures
+ * Library for inserting new properties (i.e. IDs) into JSON-like structures
+ *
+ * @example
  * Run using "node ./index --folder=foldername/subfolder --filetype=.json --depth=1"
- * 
+ *
  * @author Jan Suwart
  * @licence MIT
  */
@@ -23,6 +25,18 @@ class Poperty4Json {
     this.folder = args.folder;
     this.filetype = args.filetype || '.json';
     this.depth = args.depth || 1;
+
+    switch (args.quotation)  {
+      case ('none'):
+        this.quotation = '';
+        break;
+      case ('single'):
+        this.quotation = "'";
+        break;
+      default:
+        this.quotation = '"';
+        break;
+    }
 
     // @see https://regexr.com/4dt6m
     // BASE: \{[^}{]*\}
@@ -42,24 +56,34 @@ class Poperty4Json {
     this.readDirectory(this.folder, this.filetype).then(files => {
       console.log('promised files =>', files);
 
-      const indexFilePath = files.map(file => {
+      const fullFilePath = files.map(file => {
         return path.resolve(workingPath, file);
       });
 
-      // const indexFilePath = [path.resolve(workingPath, 'test_01.json')];
-      console.log('indexFilePath =>', indexFilePath);
+      // const fullFilePath = [path.resolve(workingPath, 'test_01.json')];
+      console.log('fullFilePath =>', fullFilePath);
 
-      indexFilePath.forEach((fileName) => {
+      fullFilePath.forEach((fileName) => {
         let file = fs.readFileSync(fileName, 'utf8');
-        console.log('\nProcess fileName', fileName, 'and edit file length', file.length, '\n');
+        console.log('\n*** Process file', fileName, '\n');
 
         const output = this.splitStingAndIterate(file, this.depth);
 
-        console.log('\n***** Transformed File ***** \n', output, '\n\n\n');
+        console.log('\n*** Writing transformed file to', fileName, '\n\n', output, '\n\n');
+
+        this.writeFile(fileName, output);
       });
+    }).catch((error) => {
+      console.log('Aborted with error', error);
     });
   }
 
+  /**
+   * Splits a file into several matches of JSON-like objects
+   * @param {string} file - full path and name of current file
+   * @param {number} depth - at which nesting level should the property be added
+   * @return {string} the modified file as string
+   */
   splitStingAndIterate(file, depth) {
     const matches = this.getAllMatchesByRe(file, this.regex);
 
@@ -73,11 +97,12 @@ class Poperty4Json {
         file = file.replace(matchedObject, matchedObject.replace(/^{(\s*)}/m, `{$1"id": ${i}$1}`));
       } else {
 
+        // TODO recognize existing property name and overwrite it
         switch (depth) {
           case 1:
             // @see https://regexr.com/4dt7e
-            // file = file.replace(matchedObject, matchedObject.replace(/^(\s*){(\n*\s*)/m, `{$2"id": ${i},$2`));
-            file = file.replace(matchedObject, matchedObject.replace(/^(\s*){(\s*)/m, `{$2"id": ${i},$2`));
+            // file = file.replace(matchedObject, matchedObject.replace(/^(\s*){(\s*)/m, `{$2"id": ${i},$2`));
+            file = file.replace(matchedObject, matchedObject.replace(/^(\s*){(\s*)/m, `{$2${this.quotation}id${this.quotation}: ${i},$2`));
             console.log('=> REPLACED string', file);
             break;
           case 2:
@@ -106,6 +131,8 @@ class Poperty4Json {
 
   /**
    * Reads the directory and returns array of files that match filetype (i.e. .json)
+   * @param {string} dirname - full directory name relative to the working directory of the script
+   * @param {string} filetype - substring that the file should be tested for, i.e. '.json'
    */
   readDirectory(dirname, filetype) {
     console.log('Reading folder', dirname, 'and filtering for type', filetype, '...');
@@ -131,17 +158,24 @@ class Poperty4Json {
 
   }
 
-  writeFile() {
-    // indexFile = indexFile.replace('</head>', sourceLine)
-
-    // Save modified string to file
-    // fs.writeFile(indexFilePath, indexFile, 'utf8', err => {
-    // 	if (err) {
-    // 		console.log('Error writing file', err);
-    // 	}
-    // });
+  /**
+   * Overwrites the file into the same folder
+   * @param {string} fullFileName - folder and filename
+   * @param {string} outputString - the output that should be written
+   */
+  writeFile(fullFileName, outputString) {
+    fs.writeFile(fullFileName, outputString, 'utf8', err => {
+    	if (err) {
+    		console.log('Error writing file', err);
+    	}
+    });
   }
 
+  /**
+   * @param {string} string - input string
+   * @param {RegEx} re - regular expression
+   * @return {Array} array of regex matches
+   */
   getAllMatchesByRe(string, re) {
     let matches = [];
     let match;
