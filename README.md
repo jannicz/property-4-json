@@ -95,18 +95,18 @@ interface Car {
 
 ## Updating existing properties
 
-If your object already contains the property (id) that you want to enrich, the property
+If your object already contains the property that you want to enrich, the property
 will be updated with a new value. Multiple executions of the script on one file will not
 have any negative effect on the values.
 
 ```javascript
-{"id":999,"car":true}
+{"id": 999, "car": true}, {"vehicle": false, "id": 155}
 ```
 
 would update to the property id and keep the formatting as
 
 ```javascript
-{"id":0,"car":true}
+{"id": 0, "car": true}, {"vehicle": false, "id": 1}
 ```
 
 # Limitations
@@ -117,7 +117,7 @@ would update to the property id and keep the formatting as
 
 * start at higher property numbers, i.e. 100, 101 etc.
 * deeper nesting levels at which the parameter should be applied
-* pass one one filename instead of a file pattern
+* pass one filename instead of a file pattern
 
 # Contributing
 
