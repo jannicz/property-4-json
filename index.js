@@ -6,7 +6,9 @@ const minimist = require('minimist');
  * Library for inserting new properties (i.e. IDs) into JSON-like structures
  *
  * @example
- * Run using "node ./index --folder=foldername/subfolder --filetype=.json --depth=1"
+ * Run using "node ./index --folder=foldername/subfolder --filetype=.json --prop=name --depth=1"
+ *
+ * TODO read only one file by filename
  *
  * @author Jan Suwart
  * @licence MIT
@@ -23,6 +25,7 @@ class Poperty4Json {
     }
 
     this.folder = args.folder;
+    this.prop = args.prop || 'id';
     this.filetype = args.filetype || '.json';
     this.depth = args.depth || 1;
 
@@ -49,19 +52,24 @@ class Poperty4Json {
    * Define path and filename, read the folder and filter for files, start splitting algorithm
    */
   parseFiles() {
-    console.log('Running Poperty4Json... parsed options', this);
+    console.log('Running property-4-json...');
 
     // PWD = working directory when the process was started
     const workingPath = path.resolve(process.env.PWD, this.folder);
     this.readDirectory(this.folder, this.filetype).then(files => {
-      console.log('promised files =>', files);
+      // console.log('promised files =>', files);
+
+      if (!files.length) {
+        console.log(`No files inside the folder "${workingPath}" matched the file type "${this.filetype}"`);
+        console.log('No files modified');
+        return;
+      }
 
       const fullFilePath = files.map(file => {
         return path.resolve(workingPath, file);
       });
 
-      // const fullFilePath = [path.resolve(workingPath, 'test_01.json')];
-      console.log('fullFilePath =>', fullFilePath);
+      // console.log('fullFilePath =>', fullFilePath);
 
       fullFilePath.forEach((fileName) => {
         let file = fs.readFileSync(fileName, 'utf8');
@@ -69,7 +77,7 @@ class Poperty4Json {
 
         const output = this.splitStingAndIterate(file, this.depth);
 
-        console.log('\n*** Writing transformed file to', fileName, '\n\n', output, '\n\n');
+        console.log('\n*** Writing transformed file to', fileName, '\n', output, '\n');
 
         this.writeFile(fileName, output);
       });
@@ -86,24 +94,46 @@ class Poperty4Json {
    */
   splitStingAndIterate(file, depth) {
     const matches = this.getAllMatchesByRe(file, this.regex);
+    // const existingPropRe = new RegExp(`${this.quotation}${this.prop}${this.quotation}:`, 'm');
+    // @see https://regexr.com/4el15
+    const existingPropRe = new RegExp(`(${this.quotation}${this.prop}${this.quotation}:)\s*([^},]+)*?(,|\s|})`);
 
     matches.forEach((match, i) => {
       const matchedObject = match[0];
-      console.log('=> match', i, '- depth', depth, '-', matchedObject);
+      // console.log('=> match', i, '- depth', depth, '-', matchedObject);
 
-      // The matched object is an empty leaf
+      // The matched object is an empty leaf object
       if (/^{\n*\s*}$/.test(matchedObject)) {
-        console.log('THERE IS AN EMPTY OBJECT');
-        file = file.replace(matchedObject, matchedObject.replace(/^{(\s*)}/m, `{$1"id": ${i}$1}`));
+        file = file.replace(
+          matchedObject,
+          matchedObject.replace(/^{(\s*)}/m, `{$1${this.quotation}${this.prop}${this.quotation}: ${i}$1}`)
+        );
       } else {
-
-        // TODO recognize existing property name and overwrite it
+        // The matched object includes other properties
         switch (depth) {
           case 1:
-            // @see https://regexr.com/4dt7e
-            // file = file.replace(matchedObject, matchedObject.replace(/^(\s*){(\s*)/m, `{$2"id": ${i},$2`));
-            file = file.replace(matchedObject, matchedObject.replace(/^(\s*){(\s*)/m, `{$2${this.quotation}id${this.quotation}: ${i},$2`));
-            console.log('=> REPLACED string', file);
+            if (existingPropRe.test(matchedObject)) {
+              // The property is already inside this object, update it
+              // console.log('UPDATE PROPERTY', existingPropRe.exec(matchedObject));
+              file = file.replace(
+                matchedObject,
+                matchedObject.replace(
+                  existingPropRe,
+                  `$1 ${i}$3`
+                )
+              );
+            } else {
+              // The property is not yet in this object, create it
+              // @see https://regexr.com/4dt7e
+              file = file.replace(
+                matchedObject,
+                matchedObject.replace(
+                  /^(\s*){(\s*)/m,
+                  `{$2${this.quotation}${this.prop}${this.quotation}: ${i},$2`
+                )
+              );
+            }
+            // console.log('=> REPLACED string', file);
             break;
           case 2:
             // file = file.replace(matchedObject, matchedObject.replace(/^(?:{)[^{]*(\s*)({)(\s*)((?:.|\s)*?)(?:})$/, `{"id": ${i},`));
@@ -147,7 +177,7 @@ class Poperty4Json {
 
         files.forEach((file) => {
           if (file.includes(filetype)) {
-            console.log('pushing', file);
+            console.log('reading', file, '...');
             fileList.push(file);
           }
         });
@@ -173,7 +203,7 @@ class Poperty4Json {
 
   /**
    * @param {string} string - input string
-   * @param {RegEx} re - regular expression
+   * @param {RegExp} re - regular expression
    * @return {Array} array of regex matches
    */
   getAllMatchesByRe(string, re) {
@@ -201,7 +231,6 @@ class Poperty4Json {
 }
 
 const argv = minimist(process.argv.slice(2));
-console.log('MIMIMALIST argv =>', argv);
 
 // Create the instance and set the options
 const prop4json = new Poperty4Json(argv);

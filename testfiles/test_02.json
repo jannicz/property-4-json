@@ -1,11 +1,15 @@
-{
-  "foo": {
+[
+  {
     "bar" : {
       "baz" : false
     }
   },
-  "bar": true,
-  "baz": {
-    "tra" : ["far"]
-  }
-}
+  {
+    "bar": true
+  },
+  {
+    "tra" : ["far"],
+    "baz": false
+  },
+  {"mar":{"car":[]}}
+]

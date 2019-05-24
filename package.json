@@ -1,10 +1,11 @@
 {
   "name": "property-4-json",
-  "version": "0.3.0",
-  "description": "Add new properties like successive ids to JSON like objects",
+  "version": "0.4.0",
+  "description": "Automatically enrich files containing JavaScript objects with new properties",
   "main": "index.js",
   "scripts": {
-    "convertJsonFiles": "node index.js --folder=testfiles --filetype=.json --depth=1",
+    "convertJsonFiles": "node index.js --folder=testfiles --filetype=.json",
+    "convertNestedJson": "node index.js --folder=testfiles/nested --filetype=.js --prop=name",
     "convertTsFiles": "node index.js --folder=testfiles --filetype=.ts --quotation=none",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

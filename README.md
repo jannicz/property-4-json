@@ -1,36 +1,47 @@
 # Property 4 JSON
 
+Using this node script you can automatically enrich large files containing JavaScript objects
+with new (sequenced) properties, i.e. IDs.
+
 ### What this library can do:
-* add (successive) IDs for JSON-like structures afterwards
-* process large folders with many files using file pattern
+* add a (successive) property to each object in a JSON-like structure
+* quickly process large folders containing many files
+* match specific file types by file pattern
+* unify unordered or scattered property values to a sequential order across objects of the same level
 
 ### Why this library is useful:
-* it also works with other filetypes, i.e. *.js, *.ts
+* it works with any filetype, i.e. `*.js`, `*.ts`
 * it does not reformat your file and it preserves whitespaces and respects your indentation
-* it does not require valid JSON structures as it is RegEx based
+* it does not require valid JSON structures as it is RegExp based
 
 # Setup
 
-Add the following line to your npm scripts:
+Install the lib via `npm i property-4-json -D` and add the following line to your npm scripts:
 ```
 "scripts": {
-    "addIds": "node index.js --folder=testfiles --filetype=.json"
+    "add-properties": "node node_modules/property-4-json --folder=testfiles --filetype=.json"
 }
+```
+
+Now you can run the the script using
+```
+npm run add-properties
 ```
 
 # Options
 
-Each option shall be passed using the syntax `--option=value`
+Pass each option using following syntax `--option=value`
 
 * `--folder`: directory (path) of the source files relative to your package.json, i.e. `--folder=src/my-json-files`
-* `--filetype`: the filetype with the syntax `.js`, `.ts`, `.json` etc.
-* `--quotation`: quotation type in which the id parameter should be wrapped, possible values are `single`, `double`, `none`
+* `--filetype`: *optional*, the filetype to match, use the syntax `.js`, `.ts`, `.json` etc. - default is `.json`
+* `--prop`: *optional*, the property name, default is `id`
+* `--quotation`: *optional*, quotation type in which the (id) parameter should be wrapped, possible values are `single`, `double`, `none`
 
 # Examples
 
 Running the algorithm on the following JSON file containing an array of objects
 
-```
+```javascript
 [
   {
     "foo": { },
@@ -46,7 +57,7 @@ Running the algorithm on the following JSON file containing an array of objects
 
 will enrich each object with an incremental ID
 
-```
+```javascript
 [
   {
     "id": 0, // <- here
@@ -65,7 +76,7 @@ will enrich each object with an incremental ID
 You are not limited to JSON files, the algorithm can be applied to any structure wrapped in curly
 brackets. Using the algorithm with a `--quotation=none` parameter on the following typescript file
 
-```
+```javascript
 interface Car {
     engine: string,
     cylinders: number,
@@ -74,7 +85,7 @@ interface Car {
 
 will result in
 
-```
+```javascript
 interface Car {
     id: 0,
     engine: string,
@@ -82,14 +93,35 @@ interface Car {
 }
 ```
 
+## Updating existing properties
+
+If your object already contains the property (id) that you want to enrich, the property
+will be updated with a new value. Multiple executions of the script on one file will not
+have any negative effect on the values.
+
+```javascript
+{"id":999,"car":true}
+```
+
+would update to the property id and keep the formatting as
+
+```javascript
+{"id":0,"car":true}
+```
+
 # Limitations
 
-* currently the maximal depth (nesting) of your JSON-like objects can only be 6
 * currently it is not possible to add new properties at lower nesting levels than 1
 
-# ToDo
+# Upcoming features
 
-* recognize existing IDs and overwrite it with new value
-* name your id parameter, i.e. 'uuid' (custom property)
 * start at higher property numbers, i.e. 100, 101 etc.
 * deeper nesting levels at which the parameter should be applied
+* pass one one filename instead of a file pattern
+
+# Contributing
+
+Please report bugs in the issues section!
+
+## Author & License
+- Jan Suwart | MIT License
