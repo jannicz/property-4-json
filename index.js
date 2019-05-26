@@ -6,7 +6,7 @@ const minimist = require('minimist');
  * Library for inserting new properties (i.e. IDs) into JSON-like structures
  *
  * @example
- * Run using "node ./index --folder=foldername/subfolder --filetype=.json --prop=name --depth=1"
+ * Run using "node ./index --folder=foldername/subfolder --filetype=.json --prop=name --stopwords=import,export"
  *
  * TODO read only one file by filename
  *
@@ -27,6 +27,7 @@ class Poperty4Json {
     this.folder = args.folder;
     this.prop = args.prop || 'id';
     this.filetype = args.filetype || '.json';
+    this.stopwords = args.stopwords || null;
     this.depth = args.depth || 1;
 
     switch (args.quotation)  {
@@ -41,11 +42,17 @@ class Poperty4Json {
         break;
     }
 
-    // @see https://regexr.com/4dt6m
+    // @see https://regexr.com/4em88
     // BASE: \{[^}{]*\}
     // PREFIX: \{(?:[^}{]+|
     // POSTFIX: )*\}
-    this.regex = /\{(?:[^}{]+|\{(?:[^}{]+|\{(?:[^}{]+|\{(?:[^}{]+|\{(?:[^}{]+|\{[^}{]*\})*\})*\})*\})*\})*\}/g;
+    this.regex = new RegExp(
+      (this.stopwords ? `^\\s*(?!${this.stopwords.split(',').join('|')}).*?` : '') +
+      `\{(?:[^}{]+|\{(?:[^}{]+|\{(?:[^}{]+|\{(?:[^}{]+|\{(?:[^}{]+|\{[^}{]*\})*\})*\})*\})*\})*\}`,
+      'gm'
+    );
+
+    console.log('REGEX =>', this.regex);
   }
 
   /**
@@ -73,16 +80,17 @@ class Poperty4Json {
 
       fullFilePath.forEach((fileName) => {
         let file = fs.readFileSync(fileName, 'utf8');
-        console.log('\n*** Process file', fileName, '\n');
+        console.log('\nProcess file', fileName, '\n');
 
         const output = this.splitStingAndIterate(file, this.depth);
 
-        console.log('\n*** Writing transformed file to', fileName, '\n', output, '\n');
+        console.log('Writing transformed file to', fileName, '\n', output);
 
         this.writeFile(fileName, output);
       });
     }).catch((error) => {
-      console.log('Aborted with error', error);
+      console.log('Could not read directory because of error', error);
+      console.log('No files modified');
     });
   }
 
@@ -93,28 +101,28 @@ class Poperty4Json {
    * @return {string} the modified file as string
    */
   splitStingAndIterate(file, depth) {
+    // @see https://regexr.com/4em88
+    const existingPropRe = new RegExp(`(${this.quotation}${this.prop}${this.quotation}:)\\s*([^},]+)*?(,|\\s|\})`);
     const matches = this.getAllMatchesByRe(file, this.regex);
-    // const existingPropRe = new RegExp(`${this.quotation}${this.prop}${this.quotation}:`, 'm');
-    // @see https://regexr.com/4el15
-    const existingPropRe = new RegExp(`(${this.quotation}${this.prop}${this.quotation}:)\s*([^},]+)*?(,|\s|})`);
+
+    // console.log('EXISTING REGEX =>', existingPropRe);
 
     matches.forEach((match, i) => {
       const matchedObject = match[0];
-      // console.log('=> match', i, '- depth', depth, '-', matchedObject);
+      console.log('=> match', i, '- depth', depth, '-', matchedObject);
 
-      // The matched object is an empty leaf object
       if (/^{\n*\s*}$/.test(matchedObject)) {
+        // The matched object is an empty leaf object
         file = file.replace(
           matchedObject,
           matchedObject.replace(/^{(\s*)}/m, `{$1${this.quotation}${this.prop}${this.quotation}: ${i}$1}`)
         );
       } else {
-        // The matched object includes other properties
+        // The matched object includes properties
         switch (depth) {
           case 1:
+            // The property is already inside this object, update it
             if (existingPropRe.test(matchedObject)) {
-              // The property is already inside this object, update it
-              // console.log('UPDATE PROPERTY', existingPropRe.exec(matchedObject));
               file = file.replace(
                 matchedObject,
                 matchedObject.replace(
@@ -125,11 +133,13 @@ class Poperty4Json {
             } else {
               // The property is not yet in this object, create it
               // @see https://regexr.com/4dt7e
+              // FIXME Having Car as part of the match contradicts the second regex ^
+              // FIXME it will not catch the Car interface because it does not start empty
               file = file.replace(
                 matchedObject,
                 matchedObject.replace(
                   /^(\s*){(\s*)/m,
-                  `{$2${this.quotation}${this.prop}${this.quotation}: ${i},$2`
+                  `$1{$2${this.quotation}${this.prop}${this.quotation}: ${i},$2`
                 )
               );
             }
@@ -172,7 +182,7 @@ class Poperty4Json {
 
       fs.readdir(dirname, (error, files) => {
         if (error) {
-          reject('Unable to read directory', dirname, error);
+          reject(error);
         }
 
         files.forEach((file) => {
@@ -203,26 +213,24 @@ class Poperty4Json {
 
   /**
    * @param {string} string - input string
-   * @param {RegExp} re - regular expression
+   * @param {RegExp} regexp - regular expression
    * @return {Array} array of regex matches
    */
-  getAllMatchesByRe(string, re) {
+  getAllMatchesByRe(string, regexp) {
     let matches = [];
     let match;
 
-    if (re.global) {
-      re.lastIndex = 0;
+    if (regexp.global) {
+      regexp.lastIndex = 0;
     } else {
-      re = new RegExp(
-        re.source, 'g' + (re.multiline ? 'm' : '')
-      );
+      regexp = new RegExp(regexp.source, 'g' + (regexp.multiline ? 'm' : ''));
     }
 
-    while (match = re.exec(string)) {
+    while (match = regexp.exec(string)) {
       matches.push(match);
 
-      if (re.lastIndex === match.index) {
-        re.lastIndex++;
+      if (regexp.lastIndex === match.index) {
+        regexp.lastIndex++;
       }
     }
 

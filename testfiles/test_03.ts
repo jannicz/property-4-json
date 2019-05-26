@@ -1,4 +1,6 @@
-export const foo: any[] = [
+import { far } from 'bar';
+
+const foo: any[] = [
     {
         name: 'FHGBFD',
         tags: ['foo', 'bar'],
@@ -14,9 +16,12 @@ export const foo: any[] = [
         tags: ['car', 'far'],
         coordinates: [152, 160],
         level: 1,
+        id: 23456,
         color: 'blue',
         data: {
             ip: "100.18.4.0",
         }
     }
 ];
+
+export { foo };

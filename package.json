@@ -6,7 +6,7 @@
   "scripts": {
     "convertJsonFiles": "node index.js --folder=testfiles --filetype=.json",
     "convertNestedJson": "node index.js --folder=testfiles/nested --filetype=.js --prop=name",
-    "convertTsFiles": "node index.js --folder=testfiles --filetype=.ts --quotation=none",
+    "convertTsFiles": "node index.js --folder=testfiles --filetype=.ts --quotation=none --stopwords=import,export",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
@@ -18,7 +18,10 @@
   },
   "keywords": [
     "json",
-    "parser"
+    "enrich",
+    "autoincrement",
+    "property",
+    "id"
   ],
   "author": "Jan Suwart",
   "license": "MIT",
