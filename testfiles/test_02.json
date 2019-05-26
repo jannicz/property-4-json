@@ -4,12 +4,13 @@
       "baz" : false
     }
   },
+  {"bar" : true},
   {
-    "bar": true
-  },
-  {
+
     "tra" : ["far"],
+
     "baz": false
+
   },
-  {"mar":{"car":[]}}
+{"mar":{"car":[]}}
 ]

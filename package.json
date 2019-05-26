@@ -1,12 +1,14 @@
 {
   "name": "property-4-json",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Automatically enrich files containing JavaScript objects with new properties",
   "main": "index.js",
   "scripts": {
     "convertJsonFiles": "node index.js --folder=testfiles --filetype=.json",
     "convertNestedJson": "node index.js --folder=testfiles/nested --filetype=.js --prop=name",
-    "convertTsFiles": "node index.js --folder=testfiles --filetype=.ts --quotation=none --stopwords=import,export",
+    "convertTsFiles": "node index.js --folder=testfiles --filetype=.ts --quotation=none --stopwords=import,export --startvalue=100",
+    "convertStopwordFiles": "node index.js --folder=testfiles/stopwords --filetype=.ts --prop=count --quotation=none --delimiter=' =' --stopwords=interface,export --endline=semicolon",
+    "falsyFolder": "node index.js --folder=foobar --filetype=.baz",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
@@ -19,6 +21,8 @@
   "keywords": [
     "json",
     "enrich",
+    "formatter",
+    "script",
     "autoincrement",
     "property",
     "id"

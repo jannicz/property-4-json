@@ -6,7 +6,15 @@ const minimist = require('minimist');
  * Library for inserting new properties (i.e. IDs) into JSON-like structures
  *
  * @example
- * Run using "node ./index --folder=foldername/subfolder --filetype=.json --prop=name --stopwords=import,export"
+ * Run using "node ./index [options] with following option possibilities:
+ * --folder=folder/subfolder
+ * --filetype=.json
+ * --prop=name
+ * --quotation=none
+ * --stopwords=import,export
+ * --startvalue=100
+ * --delimiter='='
+ * --endline=semicolon
  *
  * TODO read only one file by filename
  *
@@ -24,10 +32,14 @@ class Poperty4Json {
       console.warn('Depth of >1 is experimental and not yet recommended - use with caution');
     }
 
+    // Configuration variables
     this.folder = args.folder;
     this.prop = args.prop || 'id';
     this.filetype = args.filetype || '.json';
     this.stopwords = args.stopwords || null;
+    this.delimiter = args.delimiter ? args.delimiter.replace(/'/g, '') : ':';
+    this.endline = args.endline === 'semicolon' ? ';' : ',';
+    this.startvalue = args.startvalue || 0;
     this.depth = args.depth || 1;
 
     switch (args.quotation)  {
@@ -42,6 +54,9 @@ class Poperty4Json {
         break;
     }
 
+    // Private variables
+    this.count = this.startvalue;
+
     // @see https://regexr.com/4em88
     // BASE: \{[^}{]*\}
     // PREFIX: \{(?:[^}{]+|
@@ -52,7 +67,7 @@ class Poperty4Json {
       'gm'
     );
 
-    console.log('REGEX =>', this.regex);
+    // console.log('REGEX =>', this.regex);
   }
 
   /**
@@ -84,9 +99,11 @@ class Poperty4Json {
 
         const output = this.splitStingAndIterate(file, this.depth);
 
-        console.log('Writing transformed file to', fileName, '\n', output);
-
-        this.writeFile(fileName, output);
+        if (file != output) {
+          this.writeFile(fileName, output);
+        } else {
+          console.log('No matches in', fileName, 'file remains unchanged');
+        }
       });
     }).catch((error) => {
       console.log('Could not read directory because of error', error);
@@ -102,20 +119,20 @@ class Poperty4Json {
    */
   splitStingAndIterate(file, depth) {
     // @see https://regexr.com/4em88
-    const existingPropRe = new RegExp(`(${this.quotation}${this.prop}${this.quotation}:)\\s*([^},]+)*?(,|\\s|\})`);
+    const existingPropRe = new RegExp(`(${this.quotation}${this.prop}${this.quotation}${this.delimiter})\\s*([^},]+)*?(,|\\s|\})`);
     const matches = this.getAllMatchesByRe(file, this.regex);
 
     // console.log('EXISTING REGEX =>', existingPropRe);
 
     matches.forEach((match, i) => {
       const matchedObject = match[0];
-      console.log('=> match', i, '- depth', depth, '-', matchedObject);
+      // console.log('=> match', i, '- depth', depth, '-', matchedObject);
 
       if (/^{\n*\s*}$/.test(matchedObject)) {
         // The matched object is an empty leaf object
         file = file.replace(
           matchedObject,
-          matchedObject.replace(/^{(\s*)}/m, `{$1${this.quotation}${this.prop}${this.quotation}: ${i}$1}`)
+          matchedObject.replace(/^{(\s*)}/m, `{$1${this.quotation}${this.prop}${this.quotation}${this.delimiter} ${this.count}$1}`)
         );
       } else {
         // The matched object includes properties
@@ -127,26 +144,24 @@ class Poperty4Json {
                 matchedObject,
                 matchedObject.replace(
                   existingPropRe,
-                  `$1 ${i}$3`
+                  `$1 ${this.count}$3`
                 )
               );
             } else {
               // The property is not yet in this object, create it
-              // @see https://regexr.com/4dt7e
-              // FIXME Having Car as part of the match contradicts the second regex ^
-              // FIXME it will not catch the Car interface because it does not start empty
               file = file.replace(
                 matchedObject,
                 matchedObject.replace(
-                  /^(\s*){(\s*)/m,
-                  `$1{$2${this.quotation}${this.prop}${this.quotation}: ${i},$2`
+                  // @see https://regexr.com/4emol
+                  /^(.*?\s*){(\s*)/m,
+                  `$1{$2${this.quotation}${this.prop}${this.quotation}${this.delimiter} ${this.count}${this.endline}$2`
                 )
               );
             }
             // console.log('=> REPLACED string', file);
             break;
           case 2:
-            // file = file.replace(matchedObject, matchedObject.replace(/^(?:{)[^{]*(\s*)({)(\s*)((?:.|\s)*?)(?:})$/, `{"id": ${i},`));
+            // file = file.replace(matchedObject, matchedObject.replace(/^(?:{)[^{]*(\s*)({)(\s*)((?:.|\s)*?)(?:})$/, `{"id": ${this.count},`));
 
             // Remove the outer object brackets
             const removedOuterBrackets = matchedObject.replace(/^{([\S\s]*)}$/, '$1');
@@ -156,7 +171,6 @@ class Poperty4Json {
             // const innerMatches = this.getAllMatchesByRe(matchedObject, /{/g);
             // console.log('=> innerMatches', innerMatches);
 
-
             // RECURSION
             file = this.splitStingAndIterate(removedOuterBrackets, 1);
             break;
@@ -164,6 +178,7 @@ class Poperty4Json {
             break;
         }
       }
+      this.count++;
     });
 
     return file;
@@ -175,7 +190,7 @@ class Poperty4Json {
    * @param {string} filetype - substring that the file should be tested for, i.e. '.json'
    */
   readDirectory(dirname, filetype) {
-    console.log('Reading folder', dirname, 'and filtering for type', filetype, '...');
+    console.log('Reading folder "' + dirname + '" and filtering for type "' + filetype + '"');
 
     return new Promise((resolve, reject) => {
       let fileList = [];
@@ -183,16 +198,17 @@ class Poperty4Json {
       fs.readdir(dirname, (error, files) => {
         if (error) {
           reject(error);
+        } else {
+          files.forEach((file) => {
+            if (file.includes(filetype)) {
+              console.log('Found', file);
+              fileList.push(file);
+            }
+          });
+
+          resolve(fileList);
         }
 
-        files.forEach((file) => {
-          if (file.includes(filetype)) {
-            console.log('reading', file, '...');
-            fileList.push(file);
-          }
-        });
-
-        resolve(fileList);
       });
     });
 
@@ -204,6 +220,8 @@ class Poperty4Json {
    * @param {string} outputString - the output that should be written
    */
   writeFile(fullFileName, outputString) {
+    console.log('Writing changes to file', fullFileName, '\n');
+
     fs.writeFile(fullFileName, outputString, 'utf8', err => {
     	if (err) {
     		console.log('Error writing file', err);
