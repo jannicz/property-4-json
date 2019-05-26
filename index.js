@@ -56,6 +56,7 @@ class Poperty4Json {
 
     // Private variables
     this.count = this.startvalue;
+    this.linesChanged = 0;
 
     // @see https://regexr.com/4em88
     // BASE: \{[^}{]*\}
@@ -74,12 +75,12 @@ class Poperty4Json {
    * Define path and filename, read the folder and filter for files, start splitting algorithm
    */
   parseFiles() {
-    console.log('Running property-4-json...');
-
     // PWD = working directory when the process was started
     const workingPath = path.resolve(process.env.PWD, this.folder);
+
+    console.log('Running property-4-json...');
+
     this.readDirectory(this.folder, this.filetype).then(files => {
-      // console.log('promised files =>', files);
 
       if (!files.length) {
         console.log(`No files inside the folder "${workingPath}" matched the file type "${this.filetype}"`);
@@ -95,7 +96,7 @@ class Poperty4Json {
 
       fullFilePath.forEach((fileName) => {
         let file = fs.readFileSync(fileName, 'utf8');
-        console.log('\nProcess file', fileName, '\n');
+        // console.log('\nProcess file', fileName, '\n');
 
         const output = this.splitStingAndIterate(file, this.depth);
 
@@ -118,13 +119,17 @@ class Poperty4Json {
    * @return {string} the modified file as string
    */
   splitStingAndIterate(file, depth) {
-    // @see https://regexr.com/4em88
-    const existingPropRe = new RegExp(`(${this.quotation}${this.prop}${this.quotation}${this.delimiter})\\s*([^},]+)*?(,|\\s|\})`);
+    const existingPropRe = new RegExp(
+      // @see https://regexr.com/4em88
+      `(${this.quotation}${this.prop}${this.quotation}${this.delimiter})\\s*([^},]+)*?(,|\\s|\})`
+    );
     const matches = this.getAllMatchesByRe(file, this.regex);
+
+    this.linesChanged = 0;
 
     // console.log('EXISTING REGEX =>', existingPropRe);
 
-    matches.forEach((match, i) => {
+    matches.forEach((match) => {
       const matchedObject = match[0];
       // console.log('=> match', i, '- depth', depth, '-', matchedObject);
 
@@ -134,6 +139,7 @@ class Poperty4Json {
           matchedObject,
           matchedObject.replace(/^{(\s*)}/m, `{$1${this.quotation}${this.prop}${this.quotation}${this.delimiter} ${this.count}$1}`)
         );
+        this.linesChanged++;
       } else {
         // The matched object includes properties
         switch (depth) {
@@ -147,6 +153,7 @@ class Poperty4Json {
                   `$1 ${this.count}$3`
                 )
               );
+              this.linesChanged++;
             } else {
               // The property is not yet in this object, create it
               file = file.replace(
@@ -157,6 +164,7 @@ class Poperty4Json {
                   `$1{$2${this.quotation}${this.prop}${this.quotation}${this.delimiter} ${this.count}${this.endline}$2`
                 )
               );
+              this.linesChanged++;
             }
             // console.log('=> REPLACED string', file);
             break;
@@ -208,10 +216,8 @@ class Poperty4Json {
 
           resolve(fileList);
         }
-
       });
     });
-
   }
 
   /**
@@ -220,7 +226,7 @@ class Poperty4Json {
    * @param {string} outputString - the output that should be written
    */
   writeFile(fullFileName, outputString) {
-    console.log('Writing changes to file', fullFileName, '\n');
+    console.log('Write', this.linesChanged, 'changes to file', fullFileName);
 
     fs.writeFile(fullFileName, outputString, 'utf8', err => {
     	if (err) {
