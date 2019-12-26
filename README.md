@@ -11,8 +11,8 @@ with auto-incremented properties without the need of a database.
 
 ### Why this library is useful:
 * it works with any file type, i.e. `.js`, `.ts` or `.json`
-* it does not reformat your file and it __preserves whitespaces__ and respects your indentation
-* it does __not require valid__ JSON structures as it is RegExp based
+* it does __not reformat__ your file and it preserves whitespaces and respects your indentation
+* it does not require valid JSON structures as it is RegExp based
 * it is idempotent (multiple executions will not have any other effect as the initial execution)
 
 ## Setup
@@ -126,12 +126,13 @@ no matter how often the script is applied on that file.
 
 ## Limitations
 
-* it is not possible to add new properties at lower nesting levels than 1 (the RegExp will always match the first opening bracket of the object)
-* this script is not meant to replace a database autoincrement feature, it was developed to clean up static data before a production build
+* this lib is not meant to replace a database autoincrement feature, it was developed to clean up static data before a production build
+* this lib can be used for enriching existent dummy data with incremental properties, if you look for a solution to maintain JSON data try TODO json-server
+* if you look for a way to create dummy data that already contains id fields, try [Mockaroo](https://mockaroo.com/)
 
 ## Upcoming features
 
-* deeper nesting levels at which the parameter should be applied
+* add new properties at lower nesting levels than 1 (currently the RegExp will always match the first opening bracket of the object)
 * pass one filename instead of a file pattern or folder name
 
 ## Contributing

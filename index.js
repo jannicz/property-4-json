@@ -75,8 +75,7 @@ class Poperty4Json {
    * Define path and filename, read the folder and filter for files, start splitting algorithm
    */
   parseFiles() {
-    // PWD = working directory when the process was started
-    const workingPath = path.resolve(process.env.PWD, this.folder);
+    const workingPath = path.resolve(process.cwd(), this.folder);
 
     console.log('Running property-4-json...');
 
@@ -209,7 +208,7 @@ class Poperty4Json {
         } else {
           files.forEach((file) => {
             if (file.includes(filetype)) {
-              console.log('Found', file);
+              console.log('Adding', file);
               fileList.push(file);
             }
           });
@@ -226,7 +225,7 @@ class Poperty4Json {
    * @param {string} outputString - the output that should be written
    */
   writeFile(fullFileName, outputString) {
-    console.log('Write', this.linesChanged, 'changes to file', fullFileName);
+    console.log('Writing', this.linesChanged, 'changes to file', fullFileName);
 
     fs.writeFile(fullFileName, outputString, 'utf8', err => {
     	if (err) {

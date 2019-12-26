@@ -1,6 +1,6 @@
 {
   "name": "property-4-json",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Automatically enrich files containing JavaScript objects with new properties",
   "main": "index.js",
   "scripts": {
@@ -23,6 +23,7 @@
     "enrich",
     "formatter",
     "script",
+    "build-script",
     "autoincrement",
     "property",
     "id"
