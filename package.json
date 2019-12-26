@@ -11,7 +11,7 @@
     "falsyFolder": "node index.js --folder=foobar --filetype=.baz",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "devDependencies": {
+  "dependencies": {
     "minimist": "^1.2.0"
   },
   "repository": {
